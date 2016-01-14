@@ -110,33 +110,156 @@ void print_file_sparse(sparse_matrix &red, sparse_matrix &blu, const unsigned in
 
     std::ofstream output(filename.str().c_str());
 
-    for (int i=0; i<row; i++){
-        for(int j=0; j<col-1; j++){
-            if(red.busy(j,i)){
-                output<<'2'<<',';
-            }
-            else{
-                if(blu.busy(i,j)){
-                    output<<'1'<<',';
+    if(output.is_open()){
+        for (int i=0; i<row; i++){
+            for(int j=0; j<col-1; j++){
+                if(red.busy(j,i)){
+                    output<<'2'<<',';
                 }
                 else{
-                    output<<'0'<<',';
+                    if(blu.busy(i,j)){
+                        output<<'1'<<',';
+                    }
+                    else{
+                        output<<'0'<<',';
+                    }
+                }
+            }
+            if(red.busy(col-1,i)){
+                output<<'2'<<std::endl;
+            }
+            else{
+                if(blu.busy(i,col-1)){
+                    output<<'1'<<std::endl;
+                }
+                else{
+                    output<<'0'<<std::endl;
                 }
             }
         }
-        if(red.busy(col-1,i)){
-            output<<'2'<<std::endl;
+        output.close();
+    }
+    else{
+        cout<<"unable to open the file"<<endl;
+    }
+}
+
+void sparse_implementation(sparse_matrix &blu, sparse_matrix &red, vector<unsigned int> &print_steps, const unsigned int rows, const unsigned int cols){
+    vector<unsigned int>::iterator it_time=print_steps.begin();
+    vector<unsigned int>::iterator it_end_time=print_steps.end();
+
+    unsigned int n_steps=0;
+    unsigned int blu_moved, red_moved; //tengono traccia di eventuale ingorgo e bloccano ciclo
+
+    while (it_time!=it_end_time){
+        n_steps++;
+        blu_moved=blu.move_cars(red);
+        if(n_steps == *it_time){ //in generale ci sarà scritto stampa_matrice complessiva
+            print_file_sparse(red,blu,n_steps,rows,cols);
+            it_time++;
         }
-        else{
-            if(blu.busy(i,col-1)){
-                output<<'1'<<std::endl;
+        if(it_time!=it_end_time){   //se non faccio questo controllo, dopo chiederei di accedere a *it_time che potrebbe non esistere
+            n_steps++;
+            red_moved=red.move_cars(blu);
+            if(n_steps == *it_time){ //in generale ci sarà scritto stampa_matrice complessiva
+                print_file_sparse(red,blu,n_steps,rows,cols);
+                it_time++;
             }
-            else{
-                output<<'0'<<std::endl;
-            }
+        }
+        if(blu_moved==0 && red_moved==0){
+            cout<<"Neither blu nor red cars moved. Iteration number: "<<n_steps<<endl<<"Final situation in file step_"<<n_steps<<".csv"<<endl;
+            print_file_sparse(red,blu,n_steps,rows,cols);
+            break;
         }
     }
-    output.close();
+}
+
+void dense_implementation(dense_matrix &M, vector<unsigned int> &print_steps, const unsigned int rows, const unsigned int cols){
+    vector<unsigned int>::iterator it_time=print_steps.begin();
+    vector<unsigned int>::iterator it_end_time=print_steps.end();
+
+    unsigned int n_steps=0;
+    bool blu_moved, red_moved;
+
+    while (it_time!=it_end_time){
+        n_steps++;
+        blu_moved=M.move_blu_cars();
+        if(n_steps == *it_time){ //in generale ci sarà scritto stampa_matrice complessiva
+            M.print_file(n_steps);
+            it_time++;
+        }
+        if(it_time!=it_end_time){   //se non faccio questo controllo, dopo chiederei di accedere a *it_time che potrebbe non esistere
+            n_steps++;
+            red_moved=M.move_red_cars();
+            if(n_steps == *it_time){ //in generale ci sarà scritto stampa_matrice complessiva
+                M.print_file(n_steps);
+                it_time++;
+            }
+        }
+        if(blu_moved==0 && red_moved==0){
+            cout<<"Neither blu nor red cars moved. Iteration number: "<<n_steps<<endl<<"Final situation in file "<<n_steps<<".csv"<<endl;
+            M.print_file(n_steps);
+            break;
+        }
+    }
+    M.destroy();
+}
+
+void dense_implementation_one_line(dense_matrix &M, vector<unsigned int> &print_steps, const unsigned int n, bool one_row){
+    vector<unsigned int>::iterator it_time=print_steps.begin();
+    vector<unsigned int>::iterator it_end_time=print_steps.end();
+
+    unsigned int n_steps=0;
+    bool car_moved=false;
+
+    if(one_row){
+        while (it_time!=it_end_time){
+            n_steps++;
+            if(n_steps == *it_time){ //in generale ci sarà scritto stampa_matrice complessiva
+                M.print_file(n_steps);
+                it_time++;
+            }
+            if(it_time!=it_end_time){   //se non faccio questo controllo, dopo chiederei di accedere a *it_time che potrebbe non esistere
+                n_steps++;
+                car_moved=M.move_red_cars();
+                if(n_steps == *it_time){ //in generale ci sarà scritto stampa_matrice complessiva
+                    M.print_file(n_steps);
+                    it_time++;
+                }
+            }
+            if(car_moved==0){
+                cout<<"Only red cars could move and now they are all blocked. Iteration number: "<<n_steps<<endl<<"Final situation in file "<<n_steps<<".csv"<<endl;
+                M.print_file(n_steps);
+                break;
+            }
+        }
+        M.destroy();
+    }
+    else{
+        while (it_time!=it_end_time){
+            n_steps++;
+
+            car_moved=M.move_blu_cars();
+
+            if(n_steps == *it_time){ //in generale ci sarà scritto stampa_matrice complessiva
+                M.print_file(n_steps);
+                it_time++;
+            }
+            if(it_time!=it_end_time){   //se non faccio questo controllo, dopo chiederei di accedere a *it_time che potrebbe non esistere
+                n_steps++;
+                if(n_steps == *it_time){ //in generale ci sarà scritto stampa_matrice complessiva
+                    M.print_file(n_steps);
+                    it_time++;
+                }
+            }
+            if(car_moved==0){
+                cout<<"Only blu cars could move and now they are all blocked. Iteration number: "<<n_steps<<endl<<"Final situation in file "<<n_steps<<".csv"<<endl;
+                M.print_file(n_steps);
+                break;
+            }
+        }
+        M.destroy();
+    }
 }
 
 
@@ -157,78 +280,26 @@ int main(){
     const unsigned int rows=red.get_dim();
     const unsigned int cols=blu.get_dim();
 
-
     cout<<"cars in the matrix: "<<num_cars<<endl;
-
     cout<<"File dimensions"<<endl<<"rows: "<<rows<<", columns: "<<cols<<endl;
 
     float sparsity_limit=sparsity_param*rows*cols;
 
     if(num_cars<sparsity_limit){
-        //implementazione sparsa
-            vector<unsigned int>::iterator it_time=print_steps.begin();
-            vector<unsigned int>::iterator it_end_time=print_steps.end();
-
-            unsigned int n_steps=0;
-            unsigned int blu_moved, red_moved; //tengono traccia di eventuale ingorgo e bloccano ciclo
-
-            while (it_time!=it_end_time){
-                n_steps++;
-                blu_moved=blu.move_cars(red);
-                if(n_steps == *it_time){ //in generale ci sarà scritto stampa_matrice complessiva
-                    print_file_sparse(red,blu,n_steps,rows,cols);
-                    it_time++;
-                }
-                if(it_time!=it_end_time){   //se non faccio questo controllo, dopo chiederei di accedere a *it_time che potrebbe non esistere
-                    n_steps++;
-                    red_moved=red.move_cars(blu);
-                    if(n_steps == *it_time){ //in generale ci sarà scritto stampa_matrice complessiva
-                        print_file_sparse(red,blu,n_steps,rows,cols);
-                        it_time++;
-                    }
-                }
-                if(blu_moved==0 && red_moved==0){
-                    cout<<"Neither blu nor red cars moved. Iteration number: "<<n_steps<<endl<<"Final situation in file step_"<<n_steps<<".csv"<<endl;
-                    print_file_sparse(red,blu,n_steps,rows,cols);
-                    break;
-                }
-            }
+        sparse_implementation(blu, red, print_steps, rows, cols);
     }
     //IMPLEMENTAZIONE DENSA
     else{
-
         dense_matrix M(rows, cols,red,blu); //construisco matrice densa
-
-        //da qui parte funzione implementazione densa
-        vector<unsigned int>::iterator it_time=print_steps.begin();
-        vector<unsigned int>::iterator it_end_time=print_steps.end();
-
-        unsigned int n_steps=0;
-        bool blu_moved, red_moved;
-
-        while (it_time!=it_end_time){
-            n_steps++;
-            blu_moved=M.move_blu_cars();
-            if(n_steps == *it_time){ //in generale ci sarà scritto stampa_matrice complessiva
-                M.print_file(n_steps);
-                it_time++;
-            }
-            if(it_time!=it_end_time){   //se non faccio questo controllo, dopo chiederei di accedere a *it_time che potrebbe non esistere
-                n_steps++;
-                red_moved=M.move_red_cars();
-                if(n_steps == *it_time){ //in generale ci sarà scritto stampa_matrice complessiva
-                    M.print_file(n_steps);
-                    it_time++;
-                }
-            }
-            if(blu_moved==0 && red_moved==0){
-                cout<<"Neither blu nor red cars moved. Iteration number: "<<n_steps<<endl<<"Final situation in file "<<n_steps<<".csv"<<endl;
-                M.print_file(n_steps);
-                break;
-            }
+        if(rows==1){
+            dense_implementation_one_line(M,print_steps,cols,true);      //true è il valo passato a una bool che verifica se è una sola riga o una sola colonna
         }
-
-        M.destroy();
+        else if(cols==1){
+            dense_implementation_one_line(M,print_steps,rows,false);
+        }
+        else{
+            dense_implementation(M,print_steps,rows,cols);
+        }
     }
 
     Timer.stop();

@@ -98,9 +98,8 @@ void dense_matrix::red_car_advance(const unsigned int x, const unsigned int y){
 
 }
 bool dense_matrix::move_blu_cars(){
-    const char blu='1';
+        const char blu='1';
 
-    if(row>1){
         bool first_car_moved;
         bool cars_advanced;
         unsigned int exit_value;
@@ -130,14 +129,10 @@ bool dense_matrix::move_blu_cars(){
             }
         }
         return cars_advanced;
-    }
-    return false;
 }
 
 bool dense_matrix::move_red_cars(){
-    const char red='2';
-
-    if(col>1){
+        const char red='2';
 
         bool first_car_moved;
         bool cars_advanced;
@@ -170,8 +165,6 @@ bool dense_matrix::move_red_cars(){
             }
         }
         return cars_advanced;
-    }
-    return false;
 }
 
 void dense_matrix::print_screen(){
@@ -188,12 +181,17 @@ void dense_matrix::print_file(unsigned int n){
     filename<<n<<".csv";
 
     std::ofstream output(filename.str().c_str());
-    for(int i=0; i<row; i++){
-        for(int j=0; j<col-1; j++){
-            output<<p[index(i,j)]<<',';
+    if(output.is_open()){
+        for(int i=0; i<row; i++){
+            for(int j=0; j<col-1; j++){
+                output<<p[index(i,j)]<<',';
+            }
+            output<<p[index(i,col-1)]<<std::endl;
         }
-        output<<p[index(i,col-1)]<<std::endl;
+        output.close();
     }
-    output.close();
+    else{
+        std::cout<<"unable to open the file"<<std::endl;
+    }
 }
 #endif

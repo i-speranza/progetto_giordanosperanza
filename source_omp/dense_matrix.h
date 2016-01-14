@@ -31,7 +31,8 @@ class dense_matrix{
     inline unsigned int index(const unsigned int x, const unsigned int y){return y+col*x;};
     inline void destroy(){delete []p;};
 
-    bool move_blu_cars();
+    //bool move_blu_cars(); old version
+    bool move_blu_cars(const unsigned int j);
     bool move_red_cars();
 
     void print_screen();
@@ -101,10 +102,9 @@ void dense_matrix::red_car_advance(const unsigned int x, const unsigned int y){
     }
 
 }
-bool dense_matrix::move_blu_cars(){
-    const char blu='1';
+/*bool dense_matrix::move_blu_cars(){
+        const char blu='1';
 
-    if(row>1){
         bool first_car_moved;
         bool cars_advanced;
         unsigned int exit_value;
@@ -134,14 +134,42 @@ bool dense_matrix::move_blu_cars(){
             }
         }
         return cars_advanced;
-    }
-    return false;
+}*/
+
+//con ciclo esterno sulle colonne
+bool dense_matrix::move_blu_cars(const unsigned int j){
+        const char blu='1';
+
+        bool first_car_moved=false;
+        bool cars_advanced;
+        unsigned int exit_value;
+
+            //gestisco primo elemento. mi interessa se si è spostato
+            if(p[index(0,j)]==blu && !is_busy(1,j)){
+                    blu_car_advance(0,j);
+                    cars_advanced=true;
+                    first_car_moved=true;
+            }
+
+            //gestisco elementi
+            for(int i=1+first_car_moved; i<row-1; ++i){ //mi fermo sempre alla penultima
+                if(p[index(i,j)]==blu && !is_busy((i+1),j)){ //mi fermo solo se trovo macchina blu
+                        blu_car_advance(i,j);
+                        cars_advanced=true;
+                        ++i; //se muovo una macchina nella riga in cui l'ho mossa c'era uno zero e quindi non devo più controllare quella riga
+                }
+                exit_value=i;
+            }
+            //controllo macchina in ultima riga solo se la prima e la penultima non si sono mosse
+            if(!first_car_moved && exit_value==row-2 && p[index(row-1,j)]==blu && !is_busy(0,j)){
+                blu_car_advance(row-1,j);
+                cars_advanced=true;
+            }
+        return cars_advanced;
 }
 
 bool dense_matrix::move_red_cars(){
-    const char red='2';
-
-    if(col>1){
+        const char red='2';
 
         bool first_car_moved;
         bool cars_advanced;
@@ -157,8 +185,6 @@ bool dense_matrix::move_red_cars(){
                     cars_advanced=true;
             }
             //gestisco elementi
-
-
             for(int j=1+first_car_moved; j<col-1; ++j){
                 if(p[index(i,j)]==red && !is_busy(i,j+1)){ //mi fermo solo se trovo macchina rossa
                     red_car_advance(i,j);
@@ -174,8 +200,6 @@ bool dense_matrix::move_red_cars(){
             }
         }
         return cars_advanced;
-    }
-    return false;
 }
 
 void dense_matrix::print_screen(){
@@ -192,12 +216,17 @@ void dense_matrix::print_file(unsigned int n){
     filename<<n<<".csv";
 
     std::ofstream output(filename.str().c_str());
-    for(int i=0; i<row; i++){
-        for(int j=0; j<col-1; j++){
-            output<<p[index(i,j)]<<',';
+    if(output.is_open()){
+        for(int i=0; i<row; i++){
+            for(int j=0; j<col-1; j++){
+                output<<p[index(i,j)]<<',';
+            }
+            output<<p[index(i,col-1)]<<std::endl;
         }
-        output<<p[index(i,col-1)]<<std::endl;
+        output.close();
     }
-    output.close();
+    else{
+        std::cout<<"unable to open the file"<<std::endl;
+    }
 }
 #endif
